@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src https: data:; media-src https:; style-src 'self'; script-src 'self'">
+  <title>Spotify Mini</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="mode-player">
+    <div class="bg" id="bg"></div>
+    <div class="bg-shade"></div>
+
+    <div class="winctl">
+      <button id="btn-menu" class="ic sm" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      </button>
+      <button id="btn-pin" class="ic sm" title="Keep on top">
+        <svg viewBox="0 0 24 24" class="stroke i-pin-off"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5M8 13L4 9l2-2 5 1 4-4"/></svg>
+        <svg viewBox="0 0 24 24" class="i-pin-on"><path d="M15 3l6 6-3 1-4 4 1 5-2 2-4-4-5 5-1-1 5-5-4-4 2-2 5 1 4-4z"/></svg>
+      </button>
+      <button id="btn-min" class="ic sm" title="Minimize">
+        <svg viewBox="0 0 24 24" class="stroke"><path d="M6 12h12"/></svg>
+      </button>
+      <button id="btn-close" class="ic sm" title="Close">
+        <svg viewBox="0 0 24 24" class="stroke"><path d="M7 7l10 10M17 7L7 17"/></svg>
+      </button>
+    </div>
+
+    <!-- Player -->
+    <section id="player">
+      <button id="art-wrap" class="art-wrap" title="Open in Spotify">
+        <img id="art" alt="">
+        <div class="art-empty" id="art-empty">
+          <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+        </div>
+      </button>
+      <div class="meta">
+        <div class="title" id="title">Nothing playing</div>
+        <div class="artist" id="artist">Start something in Spotify</div>
+        <div class="progress">
+          <span id="elapsed">0:00</span>
+          <div class="bar" id="bar"><div class="fill" id="fill"></div></div>
+          <span id="duration">0:00</span>
+        </div>
+        <div class="controls">
+          <button id="btn-prev" class="ic" title="Previous (←)">
+            <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+          </button>
+          <button id="btn-play" class="ic play" title="Play / pause (Space)">
+            <svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z"/></svg>
+            <svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+          </button>
+          <button id="btn-next" class="ic" title="Next (→)">
+            <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+          </button>
+          <span class="spacer"></span>
+          <button id="btn-playlists" class="ic panel-btn" title="Your playlists (P)">
+            <svg viewBox="0 0 24 24" class="stroke"><path d="M4 6h12M4 11h12M4 16h7M17 14v6M17 20a2 2 0 1 1-2-2h2M17 14l4-1"/></svg>
+          </button>
+          <button id="btn-discover" class="ic discover" title="Discover similar songs (D)">
+            <svg viewBox="0 0 24 24"><path d="M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8zM18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Playlists -->
+    <section id="playlists" class="panel">
+      <header>
+        <div>
+          <div class="d-title">Your playlists</div>
+          <div class="d-sub" id="p-sub">Click to play</div>
+        </div>
+        <div class="p-tools">
+          <input id="p-filter" placeholder="Search" spellcheck="false" autocomplete="off">
+          <button id="btn-p-refresh" class="ic sm" title="Reload playlists">
+            <svg viewBox="0 0 24 24" class="stroke"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+          </button>
+        </div>
+      </header>
+      <ul id="p-list" class="list"></ul>
+    </section>
+
+    <!-- Discover -->
+    <section id="discover" class="panel">
+      <header>
+        <div>
+          <div class="d-title">Discover</div>
+          <div class="d-sub" id="d-sub">Similar to what you're playing</div>
+        </div>
+        <button id="btn-refresh" class="ic sm" title="New suggestions">
+          <svg viewBox="0 0 24 24" class="stroke"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+        </button>
+      </header>
+      <ul id="d-list" class="list"></ul>
+      <div class="d-foot">Suggestions via Deezer · + adds to your Spotify queue</div>
+    </section>
+
+    <!-- Setup -->
+    <section id="setup">
+      <h1>Connect Spotify</h1>
+      <p class="muted">One-time setup, takes about 2 minutes.</p>
+      <ol>
+        <li>Open the <a href="#" id="link-dash">Spotify Developer Dashboard</a> and click <b>Create app</b>.</li>
+        <li>Give it any name, and add this <b>Redirect URI</b>:
+          <div class="copy-row">
+            <code id="redirect"></code>
+            <button id="btn-copy" class="chip">Copy</button>
+          </div>
+        </li>
+        <li>Tick <b>Web API</b>, save, then copy the <b>Client ID</b> from the app's settings.</li>
+      </ol>
+      <label for="client-id">Client ID</label>
+      <input id="client-id" spellcheck="false" autocomplete="off" placeholder="e.g. 1a2b3c4d…">
+      <button id="btn-connect" class="primary">Connect Spotify</button>
+      <div class="status" id="setup-status"></div>
+    </section>
+
+    <div id="toast"></div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

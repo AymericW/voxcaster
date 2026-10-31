@@ -1,0 +1,45 @@
+{
+  "name": "spotify-mini",
+  "productName": "Spotify Mini",
+  "version": "0.1.0",
+  "description": "Always-on-top mini player for Spotify with song discovery",
+  "author": "Aymeric",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "local.aymeric.spotify-mini",
+    "productName": "Spotify Mini",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "styles.css",
+      "assets/icon.png"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Spotify Mini",
+      "runAfterFinish": true,
+      "artifactName": "Spotify-Mini-Setup-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  }
+}
