@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; img-src https: data:; media-src https:; style-src 'self'; script-src 'self'">
-  <title>Spotify Mini</title>
+  <title>Voxcaster</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -59,7 +59,7 @@
           <button id="btn-playlists" class="ic panel-btn" title="Your playlists (P)">
             <svg viewBox="0 0 24 24" class="stroke"><path d="M4 6h12M4 11h12M4 16h7M17 14v6M17 20a2 2 0 1 1-2-2h2M17 14l4-1"/></svg>
           </button>
-          <button id="btn-discover" class="ic discover" title="Discover similar songs (D)">
+          <button id="btn-discover" class="ic discover" title="Intercept signals: similar songs (D)">
             <svg viewBox="0 0 24 24"><path d="M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8zM18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z"/></svg>
           </button>
         </div>
@@ -87,7 +87,7 @@
     <section id="discover" class="panel">
       <header>
         <div>
-          <div class="d-title">Discover</div>
+          <div class="d-title">Intercepted signals</div>
           <div class="d-sub" id="d-sub">Similar to what you're playing</div>
         </div>
         <button id="btn-refresh" class="ic sm" title="New suggestions">
@@ -95,13 +95,13 @@
         </button>
       </header>
       <ul id="d-list" class="list"></ul>
-      <div class="d-foot">Suggestions via Deezer · + adds to your Spotify queue</div>
+      <div class="d-foot">Signals via Deezer · + adds to your Spotify queue</div>
     </section>
 
     <!-- Setup -->
     <section id="setup">
       <h1>Connect Spotify</h1>
-      <p class="muted">One-time setup, takes about 2 minutes.</p>
+      <p class="muted">Link the vox to Spotify. One-time setup, about 2 minutes.</p>
       <ol>
         <li>Open the <a href="#" id="link-dash">Spotify Developer Dashboard</a> and click <b>Create app</b>.</li>
         <li>Give it any name, and add this <b>Redirect URI</b>:

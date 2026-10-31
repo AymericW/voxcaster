@@ -6,7 +6,16 @@ const path = require('path');
 
 // Keep settings in the same folder whether run from source or installed
 // (the installed app's name would otherwise give it a different folder).
-app.setPath('userData', path.join(app.getPath('appData'), 'spotify-mini'));
+app.setPath('userData', path.join(app.getPath('appData'), 'voxcaster'));
+
+// Carry settings (login, position) over from when the app was called Spotify Mini.
+(function migrateLegacyConfig() {
+  const legacy = path.join(app.getPath('appData'), 'spotify-mini', 'config.json');
+  const current = path.join(app.getPath('userData'), 'config.json');
+  if (fs.existsSync(current) || !fs.existsSync(legacy)) return;
+  fs.mkdirSync(path.dirname(current), { recursive: true });
+  fs.copyFileSync(legacy, current);
+})();
 
 const REDIRECT_PORT = 8888;
 const REDIRECT_URI = `http://127.0.0.1:${REDIRECT_PORT}/callback`;
@@ -113,7 +122,7 @@ function login() {
       const ok = code && url.searchParams.get('state') === state;
 
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(callbackPage(ok ? 'Connected! You can close this tab.' : `Login failed: ${error || 'state mismatch'}`));
+      res.end(callbackPage(ok ? 'Vox link established. You can close this tab.' : `Login failed: ${error || 'state mismatch'}`));
       authServer.close();
       authServer = null;
       win?.show();
@@ -142,7 +151,7 @@ function login() {
 }
 
 function callbackPage(msg) {
-  return `<!doctype html><meta charset="utf-8"><title>Spotify Mini</title>
+  return `<!doctype html><meta charset="utf-8"><title>Voxcaster</title>
 <body style="margin:0;height:100vh;display:grid;place-items:center;background:#121214;color:#fff;font-family:Segoe UI,system-ui,sans-serif">
 <div style="text-align:center"><div style="font-size:40px">🎧</div><p style="font-size:18px">${msg}</p></div></body>`;
 }
@@ -364,7 +373,7 @@ function createWindow() {
     alwaysOnTop: config.pinned !== false,
     skipTaskbar: false,
     show: false,
-    title: 'Spotify Mini',
+    title: 'Voxcaster',
     icon: path.join(__dirname, 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

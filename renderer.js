@@ -228,7 +228,7 @@ async function togglePanel(next) {
   if (view === 'discover') {
     if (state?.mainArtist && state.mainArtist !== discoverSeed) loadDiscover();
     else if (!state?.mainArtist && !discoverSeed) {
-      $('d-list').innerHTML = '<li class="d-empty">Play a song and I\'ll find similar ones.</li>';
+      $('d-list').innerHTML = '<li class="d-empty">Play a song and I\'ll intercept similar signals.</li>';
     }
   } else if (view === 'playlists' && !playlists) {
     loadPlaylists();

@@ -1,8 +1,8 @@
 {
-  "name": "spotify-mini",
-  "productName": "Spotify Mini",
-  "version": "0.1.0",
-  "description": "Always-on-top mini player for Spotify with song discovery",
+  "name": "voxcaster",
+  "productName": "Voxcaster",
+  "version": "0.2.0",
+  "description": "Always-on-top mini player for Spotify on Windows, with song discovery and playlist switching",
   "author": "Aymeric",
   "main": "main.js",
   "private": true,
@@ -11,8 +11,8 @@
     "dist": "electron-builder --win"
   },
   "build": {
-    "appId": "local.aymeric.spotify-mini",
-    "productName": "Spotify Mini",
+    "appId": "local.aymeric.voxcaster",
+    "productName": "Voxcaster",
     "directories": {
       "output": "dist"
     },
@@ -33,9 +33,9 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Spotify Mini",
+      "shortcutName": "Voxcaster",
       "runAfterFinish": true,
-      "artifactName": "Spotify-Mini-Setup-${version}.${ext}"
+      "artifactName": "Voxcaster-Setup-${version}.${ext}"
     }
   },
   "devDependencies": {

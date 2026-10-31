@@ -2,9 +2,10 @@
   <img src="assets/icon.png" width="96" alt="">
 </p>
 
-<h1 align="center">Spotify Mini</h1>
+<h1 align="center">Voxcaster</h1>
 
 <p align="center">
+  <em>Transmitting on all frequencies.</em><br>
   A small, always-on-top desktop player for Spotify on Windows, with song discovery and quick playlist switching.
 </p>
 
@@ -13,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/discover.png" width="300" alt="Discover panel">
+  <img src="docs/discover.png" width="300" alt="Intercepted signals panel">
   &nbsp;
   <img src="docs/playlists.png" width="300" alt="Playlists panel">
 </p>
@@ -22,14 +23,14 @@
 
 - **Now playing**: album art, title, artist and a seekable progress bar, with colors that adapt to each cover
 - **Controls**: play/pause, next, previous (Space, ← and → work too)
-- **Discover**: songs from artists similar to what's playing, with 30-second previews and one-click *add to queue*
+- **Intercepted signals**: songs from artists similar to what's playing, with 30-second previews and one-click *add to queue*
 - **Playlists**: search your playlists, click to play, or shuffle-play
 - **Stays out of the way**: frameless, draggable from anywhere, pin on top, remembers its position
 - **Starts with Windows** (toggle in the ⋯ menu)
 
 ## Install
 
-Download `Spotify-Mini-Setup-x.y.z.exe` from the [latest release](../../releases/latest) and run it. It installs for your user only (no admin rights needed) and adds Start Menu and desktop shortcuts.
+Download `Voxcaster-Setup-x.y.z.exe` from the [latest release](../../releases/latest) and run it. It installs for your user only (no admin rights needed) and adds Start Menu and desktop shortcuts.
 
 The installer isn't code-signed, so Windows SmartScreen may warn the first time: click **More info → Run anyway**.
 
@@ -41,7 +42,7 @@ Spotify requires each user to bring their own (free) API app. The player walks y
 2. Add `http://127.0.0.1:8888/callback` as a **Redirect URI** and tick **Web API**.
 3. Copy the **Client ID** into the player and click **Connect Spotify**.
 
-Playback control needs **Spotify Premium** (a Spotify API rule). Login uses PKCE, so no client secret is stored. Tokens are kept locally in `%APPDATA%\spotify-mini\config.json`.
+Playback control needs **Spotify Premium** (a Spotify API rule). Login uses PKCE, so no client secret is stored. Tokens are kept locally in `%APPDATA%\voxcaster\config.json`.
 
 ## Development
 
@@ -65,7 +66,7 @@ npm run dist       # build the Windows installer into dist/
 - Spotify removed its recommendations API for new apps in 2024, so suggestions come from [Deezer's public API](https://developers.deezer.com/api) and are matched back to Spotify when you queue them.
 - Liked Songs and Spotify-made playlists (like Discover Weekly) aren't available through the API for new apps.
 
-This is a personal project and is not affiliated with or endorsed by Spotify.
+This is a personal fan project. It is not affiliated with or endorsed by Spotify or Games Workshop. Spotify is a trademark of Spotify AB.
 
 ## License
 
