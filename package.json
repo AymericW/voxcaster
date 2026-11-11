@@ -1,7 +1,7 @@
 {
   "name": "voxcaster",
   "productName": "Voxcaster",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Always-on-top mini player for Spotify on Windows, with song discovery and playlist switching",
   "author": "Aymeric",
   "main": "main.js",
@@ -18,6 +18,7 @@
     },
     "files": [
       "main.js",
+      "media-bridge.ps1",
       "preload.js",
       "renderer.js",
       "index.html",

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell, screen, Menu, powerMonitor } = require('electron');
 const http = require('http');
+const { spawn } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -277,6 +278,8 @@ async function withDevice(run) {
 }
 
 async function playerCmd(cmd, arg) {
+  // Play/pause/skip go straight to the Spotify app through Windows when possible: no API quota.
+  if (['play', 'pause', 'next', 'prev'].includes(cmd) && (await bridgeCmd(cmd))) return null;
   switch (cmd) {
     case 'play': return withDevice((dev) => spotify('PUT', '/me/player/play' + (dev ? `?device_id=${dev}` : '')));
     case 'pause': return spotify('PUT', '/me/player/pause');
@@ -319,6 +322,129 @@ async function playContext({ uri, shuffle }) {
     const q = dev ? `device_id=${dev}` : '';
     if (shuffle) await spotify('PUT', `/me/player/shuffle?state=true${q ? '&' + q : ''}`);
     await spotify('PUT', `/me/player/play${q ? '?' + q : ''}`, { context_uri: uri });
+  });
+  extras = { ...extras, contextUri: uri };
+  scheduleExtras(2500);
+}
+
+// ---------- Windows media bridge ----------
+// media-bridge.ps1 reads now-playing info from Windows' media controls and pushes it here,
+// so showing the current song costs no Spotify API calls. The API is only asked, once per
+// track, for what Windows doesn't know: the Spotify link and the playlist playing.
+
+let bridge = null;
+let bridgeStartedAt = 0;
+let quitting = false;
+let media = { available: false };
+let mediaArt = null;
+let extras = {};
+let extrasTimer = null;
+let extrasRetries = 0;
+const cmdWaiters = [];
+const trackKey = (t) => `${t.title}|${t.artist}`;
+
+function startBridge() {
+  // PowerShell can't read files inside the app's asar archive, so run a copy.
+  const script = path.join(app.getPath('userData'), 'media-bridge.ps1');
+  fs.writeFileSync(script, fs.readFileSync(path.join(__dirname, 'media-bridge.ps1')));
+  bridgeStartedAt = Date.now();
+  bridge = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script], { windowsHide: true });
+
+  let buf = '';
+  bridge.stdout.setEncoding('utf8');
+  bridge.stdout.on('data', (chunk) => {
+    buf += chunk;
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim();
+      buf = buf.slice(i + 1);
+      if (line) onBridgeMessage(line);
+    }
+  });
+  bridge.stderr.on('data', (d) => console.error('[media-bridge]', String(d).trim()));
+  bridge.on('error', (e) => console.error('[media-bridge]', e.message));
+  bridge.on('exit', () => {
+    bridge = null;
+    cmdWaiters.splice(0).forEach((done) => done(false));
+    setMedia({ available: false });
+    // Restart it, slowly if it keeps dying right away (e.g. PowerShell blocked).
+    if (!quitting) setTimeout(startBridge, Date.now() - bridgeStartedAt < 10000 ? 60000 : 5000);
+  });
+}
+
+function onBridgeMessage(line) {
+  let m;
+  try { m = JSON.parse(line); } catch { return; }
+  if (m.type === 'cmd') return cmdWaiters.shift()?.(m.ok);
+  if (m.type === 'state') setMedia(m);
+}
+
+function setMedia(m) {
+  const changed = m.available && trackKey(m) !== trackKey(media);
+  if (changed) mediaArt = m.art || null;
+  else if (m.art) mediaArt = m.art;
+  const wasAvailable = media.available;
+  media = m;
+  if (changed) {
+    extrasRetries = 0;
+    scheduleExtras(1500);
+  }
+  if (m.available || wasAvailable) pushMedia();
+}
+
+function pushMedia() {
+  if (win && !win.isDestroyed()) win.webContents.send('media:state', mediaState());
+}
+
+function mediaState() {
+  if (!media.available) return null;
+  const extra = extras.key === trackKey(media) ? extras : {};
+  const elapsed = media.isPlaying ? Date.now() - media.updatedAt : 0;
+  return {
+    source: 'windows',
+    active: true,
+    title: media.title,
+    artist: media.artist,
+    album: media.album,
+    mainArtist: extra.mainArtist || media.artist?.split(/, | & | feat\.? /i)[0],
+    art: mediaArt || extra.art || null,
+    url: extra.url || null,
+    contextUri: extras.contextUri || null, // the playlist rarely changes between tracks
+    duration: media.duration,
+    progress: Math.min(Math.max(0, media.position + elapsed), media.duration || Infinity),
+    isPlaying: media.isPlaying,
+  };
+}
+
+// The Spotify link, playlist and main artist come from the API, once per track
+// (debounced so skipping through several songs costs one call).
+function scheduleExtras(delay) {
+  clearTimeout(extrasTimer);
+  extrasTimer = setTimeout(async () => {
+    if (!media.available || !config.refreshToken) return;
+    try {
+      const s = await playerState();
+      if (!s.title) return;
+      if (s.title !== media.title && extrasRetries++ < 2) return scheduleExtras(3000); // API not caught up yet
+      extras = { key: trackKey(media), url: s.url, contextUri: s.contextUri, mainArtist: s.mainArtist, art: s.art };
+      pushMedia();
+    } catch {
+      // Rate-limited or offline: the player still works from the Windows data alone.
+    }
+  }, delay);
+}
+
+function bridgeCmd(cmd) {
+  if (!bridge || !media.available) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const done = (ok) => { clearTimeout(timer); resolve(ok); };
+    const timer = setTimeout(() => {
+      const i = cmdWaiters.indexOf(done);
+      if (i >= 0) cmdWaiters.splice(i, 1);
+      resolve(false);
+    }, 3000);
+    cmdWaiters.push(done);
+    bridge.stdin.write(cmd + '\n');
   });
 }
 
@@ -491,6 +617,7 @@ handle('player:state', () => {
   if (powerMonitor.getSystemIdleState(300) !== 'active') return { skipped: true };
   return playerState();
 });
+handle('media:get', () => mediaState());
 handle('player:cmd', (cmd, arg) => playerCmd(cmd, arg));
 handle('player:queue', (track) => queueTrack(track));
 handle('player:playContext', (opts) => playContext(opts));
@@ -523,6 +650,11 @@ if (!app.requestSingleInstanceLock()) {
     loadConfig();
     applyAutoStart();
     createWindow();
+    startBridge();
+  });
+  app.on('before-quit', () => {
+    quitting = true;
+    bridge?.stdin.end(); // the bridge exits when its input closes
   });
   app.on('window-all-closed', () => app.quit());
 }

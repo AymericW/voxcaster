@@ -57,11 +57,14 @@ npm run dist       # build the Windows installer into dist/
 | File | Purpose |
 | --- | --- |
 | `main.js` | Electron main process: window, Spotify auth and Web API, Deezer discovery, auto-start |
+| `media-bridge.ps1` | Reads now-playing from Windows' media controls and sends play/pause/skip |
 | `preload.js` | Safe bridge between the page and the main process |
 | `index.html`, `styles.css`, `renderer.js` | The player UI |
 | `assets/icon.svg` | App icon source (`icon.png` is rendered from it) |
 
 ## Notes
+
+- **Now playing comes from Windows, not the Spotify API.** `media-bridge.ps1` reads the Spotify app's track, play state, position and album art from Windows' media controls (the same info as the volume flyout), and sends play/pause/skip back the same way. The Web API is only used for playlists, discovery, queueing, seeking, and one lookup per track for the Spotify link and current playlist. When Spotify isn't playing on this PC (e.g. on your phone), the player falls back to polling the API sparingly and backs off when Spotify asks it to.
 
 - Spotify removed its recommendations API for new apps in 2024, so suggestions come from [Deezer's public API](https://developers.deezer.com/api) and are matched back to Spotify when you queue them.
 - Liked Songs and Spotify-made playlists (like Discover Weekly) aren't available through the API for new apps.

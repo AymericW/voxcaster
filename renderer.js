@@ -117,8 +117,29 @@ async function showPlayer() {
 
 // ---------- player ----------
 
-function startPolling() {
-  poll();
+// Now-playing info normally arrives from Windows' media controls (pushed, free).
+// The API polling below is only the fallback, e.g. when Spotify plays on another device.
+let mediaLive = false;
+
+function applyMedia(s) {
+  if (s) {
+    mediaLive = true;
+    stopPolling();
+    state = s;
+    fetchedAt = performance.now();
+    notice = null;
+    render();
+  } else if (mediaLive) {
+    mediaLive = false;
+    if (mode === 'player') schedulePoll(3000);
+  }
+}
+window.mini.onMedia((s) => { if (mode === 'player') applyMedia(s); });
+
+async function startPolling() {
+  const r = await call('media:get');
+  if (r.ok && r.data) return applyMedia(r.data);
+  schedulePoll(3000); // give the Windows bridge a moment to report before using the API
 }
 
 function stopPolling() {
@@ -142,11 +163,11 @@ function nextPollDelay() {
 }
 
 async function poll() {
-  if (mode !== 'player' || polling) return;
+  if (mode !== 'player' || polling || mediaLive) return;
   polling = true;
   clearTimeout(pollTimer);
   const r = await call('player:state').finally(() => { polling = false; });
-  if (mode !== 'player') return;
+  if (mode !== 'player' || mediaLive) return;
 
   if (!r.ok) {
     if (r.needsAuth) return showSetup();
@@ -164,7 +185,7 @@ async function poll() {
 
 // Catch up right away when you come back to the player.
 appEl.addEventListener('pointerenter', () => {
-  if (mode !== 'player' || notice) return;
+  if (mode !== 'player' || notice || mediaLive) return;
   if (performance.now() - fetchedAt > 3000) poll();
   else schedulePoll(POLL_ACTIVE_MS); // replace a slower poll already scheduled
 });
