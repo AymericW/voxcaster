@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, screen, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, screen, Menu, powerMonitor } = require('electron');
 const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -190,7 +190,22 @@ async function getToken() {
 
 // ---------- Spotify Web API ----------
 
+// Spotify rate-limits per endpoint family and says how long to back off (Retry-After).
+// Honour it locally: retrying early only extends the ban.
+const backoffUntil = new Map();
+const limitKey = (endpoint) => endpoint.split('?')[0].split('/').slice(0, 3).join('/');
+
+function rateLimitError(until) {
+  const at = new Date(until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const e = new Error(`Spotify rate limit · back at ${at}`);
+  e.retryAt = until;
+  return e;
+}
+
 async function spotify(method, endpoint, body, retried = false) {
+  const key = limitKey(endpoint);
+  if (Date.now() < (backoffUntil.get(key) || 0)) throw rateLimitError(backoffUntil.get(key));
+
   const token = await getToken();
   const r = await fetch('https://api.spotify.com/v1' + endpoint, {
     method,
@@ -201,6 +216,11 @@ async function spotify(method, endpoint, body, retried = false) {
     config.expiresAt = 0;
     return spotify(method, endpoint, body, true);
   }
+  if (r.status === 429) {
+    const until = Date.now() + (Number(r.headers.get('retry-after')) || 30) * 1000;
+    backoffUntil.set(key, until);
+    throw rateLimitError(until);
+  }
   if (r.status === 204) return null;
   const text = await r.text();
   let data = null;
@@ -210,8 +230,7 @@ async function spotify(method, endpoint, body, retried = false) {
     const e = new Error(
       reason === 'NO_ACTIVE_DEVICE' ? 'Open Spotify on a device first'
         : reason === 'PREMIUM_REQUIRED' ? 'Spotify Premium is required for this'
-          : r.status === 429 ? 'Spotify says slow down, try again in a moment'
-            : data?.error?.message || `Spotify error ${r.status}`,
+          : data?.error?.message || `Spotify error ${r.status}`,
     );
     e.reason = reason;
     throw e;
@@ -448,7 +467,7 @@ function setExpanded(expand) {
 function handle(name, fn) {
   ipcMain.handle(name, async (_e, ...args) => {
     try { return { ok: true, data: await fn(...args) }; }
-    catch (e) { return { ok: false, error: e.message, needsAuth: !!e.needsAuth, needsScope: !!e.needsScope }; }
+    catch (e) { return { ok: false, error: e.message, needsAuth: !!e.needsAuth, needsScope: !!e.needsScope, retryAt: e.retryAt || null }; }
   });
 }
 
@@ -467,7 +486,11 @@ handle('config:setClientId', (id) => {
 });
 handle('auth:login', () => login());
 handle('auth:logout', () => clearTokens());
-handle('player:state', () => playerState());
+handle('player:state', () => {
+  // Don't spend API quota while nobody is at the PC (idle 5+ minutes or locked).
+  if (powerMonitor.getSystemIdleState(300) !== 'active') return { skipped: true };
+  return playerState();
+});
 handle('player:cmd', (cmd, arg) => playerCmd(cmd, arg));
 handle('player:queue', (track) => queueTrack(track));
 handle('player:playContext', (opts) => playContext(opts));

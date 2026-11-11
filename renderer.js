@@ -2,7 +2,9 @@ const $ = (id) => document.getElementById(id);
 const call = (...args) => window.mini.call(...args);
 const appEl = $('app');
 
-const POLL_MS = 1500;
+const POLL_ACTIVE_MS = 4000; // mouse over the player
+const POLL_IDLE_MS = 20000; // playing, not looking
+const POLL_PAUSED_MS = 60000; // paused, nothing playing, minimized or rate-limited without a time
 const ICONS = {
   play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
   stop: '<svg viewBox="0 0 24 24"><path d="M7 7h10v10H7z"/></svg>',
@@ -20,6 +22,8 @@ let view = null; // open panel: 'discover' | 'playlists' | null
 let discoverSeed = null;
 let playlists = null;
 let pollTimer = null;
+let polling = false;
+let notice = null; // shown in place of the artist line, e.g. "Spotify rate limit · back at 10:04"
 let preview = null;
 let lastArt = null;
 
@@ -114,27 +118,59 @@ async function showPlayer() {
 // ---------- player ----------
 
 function startPolling() {
-  stopPolling();
   poll();
-  pollTimer = setInterval(poll, POLL_MS);
 }
 
 function stopPolling() {
-  clearInterval(pollTimer);
+  clearTimeout(pollTimer);
   pollTimer = null;
 }
 
+function schedulePoll(ms) {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(poll, ms);
+}
+
+// Spotify's API quota is small, so only ask as often as the UI needs:
+// often while you're looking at the player, rarely otherwise, and right when the song should end.
+function nextPollDelay() {
+  if (document.hidden) return POLL_PAUSED_MS;
+  if (!state?.title || !state.isPlaying) return POLL_PAUSED_MS;
+  const base = appEl.matches(':hover') ? POLL_ACTIVE_MS : POLL_IDLE_MS;
+  const remaining = state.duration - currentProgress();
+  return Math.max(1500, Math.min(base, remaining + 1000));
+}
+
 async function poll() {
+  if (mode !== 'player' || polling) return;
+  polling = true;
+  clearTimeout(pollTimer);
+  const r = await call('player:state').finally(() => { polling = false; });
   if (mode !== 'player') return;
-  const r = await call('player:state');
+
   if (!r.ok) {
     if (r.needsAuth) return showSetup();
-    return;
+    notice = r.error;
+    render();
+    return schedulePoll(r.retryAt ? Math.max(5000, r.retryAt - Date.now()) : POLL_PAUSED_MS);
   }
+  if (r.data.skipped) return schedulePoll(POLL_PAUSED_MS); // PC idle or locked
   state = r.data;
   fetchedAt = performance.now();
+  notice = null;
   render();
+  schedulePoll(nextPollDelay());
 }
+
+// Catch up right away when you come back to the player.
+appEl.addEventListener('pointerenter', () => {
+  if (mode !== 'player' || notice) return;
+  if (performance.now() - fetchedAt > 3000) poll();
+  else schedulePoll(POLL_ACTIVE_MS); // replace a slower poll already scheduled
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) poll();
+});
 
 function render() {
   const s = state;
@@ -142,7 +178,8 @@ function render() {
   appEl.classList.toggle('playing', !!(playing && s.isPlaying));
 
   $('title').textContent = playing ? s.title : 'Nothing playing';
-  $('artist').textContent = playing ? s.artist : s?.device ? `Connected to ${s.device}` : 'Start something in Spotify';
+  $('artist').textContent = notice || (playing ? s.artist : s?.device ? `Connected to ${s.device}` : 'Start something in Spotify');
+  $('artist').classList.toggle('notice', !!notice);
   $('duration').textContent = fmt(playing ? s.duration : 0);
 
   const art = playing ? s.art : null;

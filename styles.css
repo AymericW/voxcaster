@@ -135,6 +135,7 @@ section { position: relative; }
 .title { padding-right: 126px; }
 .title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .artist { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.artist.notice { color: #fbbf24; }
 
 .progress {
   display: flex;
